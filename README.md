@@ -1,3 +1,7 @@
+# ⚠️ **THIS PROJECT IS UNMAINTAINED** ⚠️
+
+Thanks for your interest over the years but, as the commit history shows, I don't have the time to maintain this project between my family and professional responsibilities (especially as I don't use this extension anymore!).
+
 # gnome-github-notifications
 Integrate github's notifications within the gnome desktop environment
 
