@@ -2,5 +2,7 @@
 	"description": "Integrate GitHub notifications within the GNOME desktop environment",
 	"uuid": "github.notifications@ihiroky.dev",
 	"name": "Github Notifications",
-	"shell-version": ["40", "41", "42"]
+	"shell-version": ["50"],
+	"url": "https://github.com/alexduf/gnome-github-notifications",
+	"settings-schema": "org.gnome.shell.extensions.github.notifications"
 }

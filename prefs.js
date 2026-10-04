@@ -1,114 +1,91 @@
-const { Gtk, Gio } = imports.gi;
+import Adw from 'gi://Adw';
+import Gio from 'gi://Gio';
+import Gtk from 'gi://Gtk?version=4.0';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const GITHUB_SETTINGS_SCHEMA = 'org.gnome.shell.extensions.github.notifications';
+const SETTINGS_SCHEMA = 'org.gnome.shell.extensions.github.notifications';
 
-const _settings = ExtensionUtils.getSettings(GITHUB_SETTINGS_SCHEMA);
+function bindSetting(settings, key, widget, property) {
+    settings.bind(key, widget, property, Gio.SettingsBindFlags.DEFAULT);
+}
 
-const TOKEN_EXPLAINER = `To get your token, please visit <a href="https://github.com/settings/tokens/new?scopes=notifications&amp;description=Gnome%20desktop%20notifications">https://github.com/settings/tokens</a>
- - Click on "Generate Token"
- - In "Select scopes", choose only "notifications"
- - Copy and paste the token in the above field
-
-Only Github Enterprise users need to change the "Github Hostname"
-It should not include "http[s]://" or path params.
-
-* This refresh interval will be ignored if smaller than Github's policy.
-See <a href="https://developer.github.com/v3/activity/notifications/">https://developer.github.com/v3/activity/notifications</a>`;
-
-function makeLabeledOptionBox(labelText) {
-    const box = new Gtk.Box({
-        orientation: Gtk.Orientation.HORIZONTAL,
-        spacing: 10,
+function addEntryRow(group, settings, title, key, options = {}) {
+    const row = new Adw.ActionRow({
+        title,
+        subtitle: options.subtitle ?? '',
     });
-    const label = new Gtk.Label({
-        label: labelText
-    });
+    const entry = options.password
+        ? new Gtk.PasswordEntry({hexpand: true, show_peek_icon: true})
+        : new Gtk.Entry({hexpand: true});
 
-    box.append(label);
-    return box;
+    bindSetting(settings, key, entry, 'text');
+    row.add_suffix(entry);
+    row.activatable_widget = entry;
+    group.add(row);
 }
 
-function bindSettingToGtkWidget(boundSettingName, widget, property) {
-    _settings.bind(boundSettingName, widget, property, Gio.SettingsBindFlags.DEFAULT);
+function addSwitchRow(group, settings, title, key) {
+    const row = new Adw.ActionRow({title});
+    const switchWidget = new Gtk.Switch({valign: Gtk.Align.CENTER});
+
+    bindSetting(settings, key, switchWidget, 'active');
+    row.add_suffix(switchWidget);
+    row.activatable_widget = switchWidget;
+    group.add(row);
 }
 
-function makeLabeledSwitchOptionBox(label, boundSettingName) {
-    const box = makeLabeledOptionBox(label);
-
-    const switch_ = new Gtk.Switch();
-    bindSettingToGtkWidget(boundSettingName, switch_, 'state');
-
-    box.append(switch_);
-    return box;
-}
-
-function makeLabeledEntryOptionBox(label, boundSettingName) {
-    const box = makeLabeledOptionBox(label);
-
-    const entry = new Gtk.Entry();
-    bindSettingToGtkWidget(boundSettingName, entry, 'text');
-
-    box.append(entry);
-    return box;
-}
-
-function makeLabeledSpinButtonOptionBox(label, boundSettingName, min, max, step) {
-    const box = makeLabeledOptionBox(label);
-
+function addSpinRow(group, settings, title, key, min, max, step) {
+    const row = new Adw.ActionRow({title});
     const spinButton = Gtk.SpinButton.new_with_range(min, max, step);
-    bindSettingToGtkWidget(boundSettingName, spinButton, 'value');
 
-    box.append(spinButton);
-    return box;
+    spinButton.set_numeric(true);
+    bindSetting(settings, key, spinButton, 'value');
+    row.add_suffix(spinButton);
+    row.activatable_widget = spinButton;
+    group.add(row);
 }
 
-function buildPrefsWidget() {
-    const mainBox = new Gtk.Box({
-        orientation: Gtk.Orientation.VERTICAL,
-        'margin-top': 20,
-        'margin-bottom': 20,
-        'margin-start': 20,
-        'margin-end': 20,
-        spacing: 10,
-    });
+export default class GithubNotificationsPreferences extends ExtensionPreferences {
+    fillPreferencesWindow(window) {
+        const settings = this.getSettings(SETTINGS_SCHEMA);
+        const page = new Adw.PreferencesPage();
+        const githubGroup = new Adw.PreferencesGroup({
+            title: 'GitHub',
+            description: 'Configure the GitHub account used for notifications.',
+        });
 
-    const innerWidgets = [
-        makeLabeledEntryOptionBox('Github Hostname', 'domain'),
-        makeLabeledEntryOptionBox('Github Token', 'token'),
-        makeLabeledEntryOptionBox('Github Handle', 'handle'),
-        makeLabeledSwitchOptionBox('Show notifications alert', 'show-alert'),
-        makeLabeledSpinButtonOptionBox(
-            'Refresh interval (in seconds)*',
+        addEntryRow(githubGroup, settings, 'GitHub Hostname', 'domain', {
+            subtitle: 'Use github.com unless you use GitHub Enterprise.',
+        });
+        addEntryRow(githubGroup, settings, 'GitHub Token', 'token', {
+            password: true,
+            subtitle: 'A token with permission to read notifications.',
+        });
+        addEntryRow(githubGroup, settings, 'GitHub Handle', 'handle', {
+            subtitle: 'Kept for compatibility with older settings.',
+        });
+
+        const behaviorGroup = new Adw.PreferencesGroup({title: 'Behavior'});
+        addSwitchRow(behaviorGroup, settings, 'Show notification alerts', 'show-alert');
+        addSpinRow(
+            behaviorGroup,
+            settings,
+            'Refresh interval (seconds)',
             'refresh-interval',
             60,
             86400,
-            1,
-        ),
-        makeLabeledSwitchOptionBox(
-            'Only count notifications if you\'re participating (mention, review asked...)',
-            'show-participating-only',
-        ),
-        makeLabeledSwitchOptionBox('Hide notification count', 'hide-notification-count'),
-        makeLabeledSwitchOptionBox(
-            'Hide widget when there are no notifications',
-            'hide-widget'
-        ),
-        new Gtk.Label({
-            label: TOKEN_EXPLAINER,
-            selectable: true,
-            'use-markup': true
-        }),
-    ];
+            1);
+        addSwitchRow(
+            behaviorGroup,
+            settings,
+            'Only show participating notifications',
+            'show-participating-only');
+        addSwitchRow(behaviorGroup, settings, 'Hide notification count', 'hide-notification-count');
+        addSwitchRow(behaviorGroup, settings, 'Hide widget when there are no notifications', 'hide-widget');
 
-    for (const w of innerWidgets) {
-        mainBox.append(w);
+        page.add(githubGroup);
+        page.add(behaviorGroup);
+        window.add(page);
     }
-
-    return mainBox;
-}
-
-function init() {
 }
