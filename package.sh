@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-uuid='github.notifications@alexandre.dufournet.gmail.com'
+uuid='github.notifications@ihiroky.dev'
 schema='org.gnome.shell.extensions.github.notifications.gschema.xml'
 staging_dir=$(mktemp -d)
 trap 'rm -rf "$staging_dir"' EXIT

@@ -10,11 +10,10 @@ This version targets GNOME Shell 50 only.
 ```
 ./package.sh
 gnome-extensions install --force gnome-notifications.zip
-gnome-extensions enable github.notifications@alexandre.dufournet.gmail.com
-gnome-extensions prefs github.notifications@alexandre.dufournet.gmail.com
+gnome-extensions enable github.notifications@ihiroky.dev
+gnome-extensions prefs github.notifications@ihiroky.dev
 ```
 
 Configure the GitHub token and hostname in the preferences window. The token must be able to read notifications.
 
-To install directly from a checkout while developing, copy the repository contents to `~/.local/share/gnome-shell/extensions/github.notifications@alexandre.dufournet.gmail.com/` and then enable the extension with `gnome-extensions`.
-
+To install directly from a checkout while developing, copy the repository contents to `~/.local/share/gnome-shell/extensions/github.notifications@ihiroky.dev/` and then enable the extension with `gnome-extensions`.
